@@ -15,8 +15,13 @@ courer_regular = pygame.font.match_font("Courier", bold=False)
 courer_bold = pygame.font.match_font("Courier", bold=True)
 font = pygame.font.Font(courer_regular, 11)
 font_b = pygame.font.Font(courer_bold, 11)
+font_b2 = pygame.font.Font(courer_bold, 22)
 
-
+# TODO:
+# add Level Complete message
+# fix collision radius
+# check percent bug when after a line clears pixels
+# fix delay during flood
 
 class Game:
 
@@ -29,7 +34,7 @@ class Game:
 
         self.player = Player(self.window)
         self.status_bar = StatusBar(self.window)
-        self.level = 0
+        self.level = 5
 
         # level params
         self.white_dots = None
@@ -92,6 +97,8 @@ class Game:
 
             if self.player.interference(self.white_dots, self.black_dots) or self.field.check_interference(self.white_dots) or self.time_remaining <= 0:
                 time.sleep(2)
+                for dot in self.black_dots:
+                    dot.reset_position()
                 self.player.xonii -= 1
                 if self.player.xonii == 0:
                     self.show_score = True
@@ -112,20 +119,21 @@ class Game:
         self.window.fill((0, 0, 0))
         score_msg = "Your Score is: {score}".format(score=self.player.score)
         if self.congrats:
-            msg = font.render("YOU WIN! " + score_msg + score_msg, True, (255,255,255))
-            self.window.blit(msg, (10, FIELD_HEIGHT + 5))
+            msg = font_b2.render("YOU WIN! " + score_msg + score_msg, True, (204, 204, 0))
+            msg_rect = msg.get_rect(center=(FIELD_WIDTH // 2, FIELD_HEIGHT // 2))
+            self.window.blit(msg, msg_rect)
         elif self.show_score:
-            msg = font.render("You Lose. " + score_msg, True, (255,255,255))
-            self.window.blit(msg, (10, FIELD_HEIGHT + 5))
-
+            msg = font_b2.render("You Lose. " + score_msg, True, (204, 204, 0))
+            msg_rect = msg.get_rect(center=(FIELD_WIDTH // 2, FIELD_HEIGHT // 2))
+            self.window.blit(msg, msg_rect)
         else:
             self.field.draw()
             if self.show_ready:
-                msg = font.render("Ready...", True, (255,255,255))
-                self.window.blit(msg, (10, FIELD_HEIGHT + 5))
-            else:
-                self.status_bar.draw(self.level, self.player.xonii, self.player.score, self.percent_complete,
-                                     self.time_remaining)
+                msg = font_b2.render("Ready...", True, (204, 204, 0))
+                msg_rect = msg.get_rect(center=(FIELD_WIDTH // 2, FIELD_HEIGHT // 2))
+                self.window.blit(msg, msg_rect)
+            self.status_bar.draw(self.level, self.player.xonii, self.player.score, self.percent_complete,
+                                 self.time_remaining)
             self.player.draw()
             for dot in self.white_dots:
                 dot.draw()
@@ -463,6 +471,10 @@ class BlackDot(Dot):
         self.bounce_pix = BLACK
         self.bounce_pix_2 = RED
         self.image = None
+
+    def reset_position(self):
+        self.y = random.randint(0, 3) + (FIELD_HEIGHT - BORDER + 10)
+        self.x = BORDER + random.randint(0, FIELD_WIDTH - BORDER - 1)
 
     def draw(self):
         pygame.draw.rect(self.window, (0, 0, 0), pygame.Rect(self.x, self.y, 3,3))
