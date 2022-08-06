@@ -18,6 +18,7 @@ CHECKED = 1
 BORDER = 20
 
 MAX_LEVEL = 15
+MIN_PERCENT_FOR_WIN = 75
 
 
 def get_time_limit(level, died_on_this_level=False):

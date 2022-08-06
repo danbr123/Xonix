@@ -4,6 +4,7 @@ import random
 from GameDefs import *
 import numpy as np
 import time
+from skimage.morphology import flood_fill
 
 
 pygame.init()
@@ -18,10 +19,9 @@ font_b = pygame.font.Font(courer_bold, 11)
 font_b2 = pygame.font.Font(courer_bold, 22)
 
 # TODO:
-# add Level Complete message
 # fix collision radius
-# check percent bug when after a line clears pixels
-# fix delay during flood
+# Check flood bug where entire screen turns black - possibly fixed
+# Prettier messages
 
 class Game:
 
@@ -34,7 +34,7 @@ class Game:
 
         self.player = Player(self.window)
         self.status_bar = StatusBar(self.window)
-        self.level = 5
+        self.level = 0
 
         # level params
         self.white_dots = None
@@ -78,11 +78,13 @@ class Game:
                 self.start_time = time.time()
             else:
                 self.time_remaining = int(self.time_limit - (time.time() - self.start_time))
-
+            self.field.update_blue_count()
+            self.percent_complete = 100 * (self.field.blue_count / TOTAL_SQUARES)
             if self.player.update(self.field.field_bmp):
                 self.field.flood_fill(self.white_dots, self.orange_lines)
+                self.field.update_blue_count()
                 self.percent_complete = 100 * (self.field.blue_count / TOTAL_SQUARES)
-                if self.percent_complete > 75:
+                if self.percent_complete > MIN_PERCENT_FOR_WIN:
                     self.player.update_score(self.time_remaining, self.time_limit)
                     if self.level == MAX_LEVEL:
                         self.congrats = True
@@ -112,7 +114,7 @@ class Game:
 
         if self.show_score:
             keys_pressed = pygame.key.get_pressed()
-            if pygame.K_ESCAPE in keys_pressed or pygame.K_RETURN in keys_pressed:
+            if keys_pressed[pygame.K_ESCAPE] or keys_pressed[pygame.K_RETURN]:
                 self._running = False
 
     def on_render(self):
@@ -312,7 +314,7 @@ class Field:
             for j in range(FIELD_WIDTH):
                 if i < BORDER - 1 or j < BORDER - 1 or i >= FIELD_HEIGHT - BORDER or j >= FIELD_WIDTH - BORDER:
                     self.field_bmp[i][j] = AQUA
-                    self.blue_count += 1
+                    # self.blue_count += 1
                 else:
                     self.field_bmp[i][j] = BLACK
         self.modified = True
@@ -323,41 +325,57 @@ class Field:
         self.window.blit(surf, (0, 0))
 
     def flood_fill(self, white_dots, orange_lines):
+        # def check_criteria(x, y, queue):
+        #     if self.field_bmp[y][x] == BLACK:
+        #         self.ops += 1
+        #         self.field_bmp[y][x] = CHECKED
+        #         queue.extend([[x+1, y], [x, y+1], [x-1, y], [x, y-1]])
+
         # replace reds with blue
-        self.blue_count += np.count_nonzero(self.field_bmp == RED)
+        # self.blue_count += np.count_nonzero(self.field_bmp == RED)
         self.field_bmp[self.field_bmp == RED] = AQUA
         start_points = [dot for dot in white_dots]
         for line in orange_lines:
             start_points.append(line.end_one)
             start_points.append(line.end_two)
-
         for point in start_points:
-            if self.field_bmp[point.y, point.x] == CHECKED:
-                continue
-            queue = [[point.x, point.y]]
-            while queue:
-                x_start, y = queue.pop()
-                x = x_start
+            if self.field_bmp[point.y][point.x] == BLACK:
+                self.field_bmp = flood_fill(self.field_bmp, (point.y, point.x), CHECKED)
+        # for point in start_points:
+        #     if self.field_bmp[point.y, point.x] == CHECKED:
+        #         continue
+        #     queue = [[point.x, point.y]]
+        #     while queue:
+        #         new_point = queue.pop()
+        #         check_criteria(new_point[0], new_point[1], queue)
 
-                while self.field_bmp[y][x] == BLACK:
-                    self.field_bmp[y][x] = CHECKED
-                    if self.field_bmp[y+1, x] != CHECKED:
-                        queue.append([x, y+1])
-                    if self.field_bmp[y-1, x] != CHECKED:
-                        queue.append([x, y - 1])
-                    x = x + 1
-                x = x_start - 1
-                while self.field_bmp[y][x] == BLACK:
-                    self.field_bmp[y][x] = CHECKED
-                    if self.field_bmp[y+1, x] != CHECKED:
-                        queue.append([x, y+1])
-                    if self.field_bmp[y-1, x] != CHECKED:
-                        queue.append([x, y - 1])
-                    x = x - 1
+        # for point in start_points:
+        #     if self.field_bmp[point.y, point.x] == CHECKED:
+        #         continue
+        #     queue = [[point.x, point.y]]
+        #     while queue:
+        #         x_start, y = queue.pop()
+        #         x = x_start
+        #
+        #         while self.field_bmp[y][x] == BLACK:
+        #             self.field_bmp[y][x] = CHECKED
+        #             if self.field_bmp[y + 1, x] != CHECKED:
+        #                 queue.append([x, y + 1])
+        #             if self.field_bmp[y-1, x] != CHECKED:
+        #                 queue.append([x, y - 1])
+        #             x = x + 1
+        #         x = x_start - 1
+        #         while self.field_bmp[y][x] == BLACK:
+        #             self.field_bmp[y][x] = CHECKED
+        #             if self.field_bmp[y+1, x] != CHECKED:
+        #                 queue.append([x, y+1])
+        #             if self.field_bmp[y-1, x] != CHECKED:
+        #                 queue.append([x, y - 1])
+        #             x = x - 1
 
 
         # replace black->blue and checked->black
-        self.blue_count += np.count_nonzero(self.field_bmp == BLACK)
+        # self.blue_count += np.count_nonzero(self.field_bmp == BLACK)
         self.field_bmp[self.field_bmp == BLACK] = AQUA
         self.field_bmp[self.field_bmp == CHECKED] = BLACK
 
@@ -370,6 +388,8 @@ class Field:
     def clean_red(self):
         self.field_bmp[self.field_bmp == RED] = BLACK
 
+    def update_blue_count(self):
+        self.blue_count = np.count_nonzero(self.field_bmp == AQUA)
 
 class Dot:
 
