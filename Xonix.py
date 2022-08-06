@@ -105,7 +105,6 @@ class Game:
                 self._running = False
 
     def on_render(self):
-        # TODO
         if self.congrats:
             msg = font.render("you win.", True, WHITE)
             self.window.blit(msg, (10, FIELD_HEIGHT + 5))
@@ -304,11 +303,6 @@ class Field:
                     self.field_bmp[i][j] = BLACK
         self.modified = True
 
-
-    def update(self):  # TODO ??
-        if self.modified:
-            modified = False
-
     def draw(self):
         # pygame.draw.rect(self.window, AQUA, self.base_rect)
         surf = pygame.surfarray.make_surface(np.swapaxes(self.field_bmp, 0, 1))
@@ -406,7 +400,6 @@ class Dot:
         self.y += self.speed_y
 
     def draw(self):
-        # TODO
         pygame.draw.rect(self.window, (255,255,255), pygame.Rect(self.x, self.y, 3,3))
 
     def y_border(self):
