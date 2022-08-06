@@ -13,8 +13,8 @@ pygame.font.init()
 # fonts
 courer_regular = pygame.font.match_font("Courier", bold=False)
 courer_bold = pygame.font.match_font("Courier", bold=True)
-font = pygame.font.Font(courer_regular, 12)
-font_b = pygame.font.Font(courer_bold, 12)
+font = pygame.font.Font(courer_regular, 11)
+font_b = pygame.font.Font(courer_bold, 11)
 
 
 
@@ -29,7 +29,7 @@ class Game:
 
         self.player = Player(self.window)
         self.status_bar = StatusBar(self.window)
-        self.level = 2
+        self.level = 0
 
         # level params
         self.white_dots = None
@@ -74,30 +74,34 @@ class Game:
             else:
                 self.time_remaining = int(self.time_limit - (time.time() - self.start_time))
 
-        if self.player.update(self.field.field_bmp):
-            self.field.flood_fill(self.white_dots, self.orange_lines)
-            self.percent_complete = 100 * (self.field.blue_count / TOTAL_SQUARES)
-            if self.percent_complete > 75:
-                self.init_next_level()
-        for dot in self.white_dots:
-            dot.update(self.field.field_bmp)
-        for dot in self.black_dots:
-            dot.update(self.field.field_bmp)
-        for line in self.orange_lines:
-            line.update(self.field.field_bmp)
+            if self.player.update(self.field.field_bmp):
+                self.field.flood_fill(self.white_dots, self.orange_lines)
+                self.percent_complete = 100 * (self.field.blue_count / TOTAL_SQUARES)
+                if self.percent_complete > 75:
+                    self.player.update_score(self.time_remaining, self.time_limit)
+                    if self.level == MAX_LEVEL:
+                        self.congrats = True
+                    else:
+                        self.init_next_level()
+            for dot in self.white_dots:
+                dot.update(self.field.field_bmp)
+            for dot in self.black_dots:
+                dot.update(self.field.field_bmp)
+            for line in self.orange_lines:
+                line.update(self.field.field_bmp)
 
-        if self.player.interference(self.white_dots, self.black_dots) or self.field.check_interference(self.white_dots) or self.time_remaining <= 0:
-            time.sleep(2)
-            self.player.xonii -= 1
-            if self.player.xonii == 0:
-                self.show_score = True
-            else:
-                self.player.died_on_this_level = True
-                self.player.reset_position()
-                self.field.clean_red()
-                self.time_limit = get_time_limit(self.level, self.player.died_on_this_level)
-                self.time_remaining = self.time_limit
-                self.show_ready = True
+            if self.player.interference(self.white_dots, self.black_dots) or self.field.check_interference(self.white_dots) or self.time_remaining <= 0:
+                time.sleep(2)
+                self.player.xonii -= 1
+                if self.player.xonii == 0:
+                    self.show_score = True
+                else:
+                    self.player.died_on_this_level = True
+                    self.player.reset_position()
+                    self.field.clean_red()
+                    self.time_limit = get_time_limit(self.level, self.player.died_on_this_level)
+                    self.time_remaining = self.time_limit
+                    self.show_ready = True
 
         if self.show_score:
             keys_pressed = pygame.key.get_pressed()
@@ -105,29 +109,31 @@ class Game:
                 self._running = False
 
     def on_render(self):
+        self.window.fill((0, 0, 0))
+        score_msg = "Your Score is: {score}".format(score=self.player.score)
         if self.congrats:
-            msg = font.render("you win.", True, WHITE)
+            msg = font.render("YOU WIN! " + score_msg + score_msg, True, (255,255,255))
             self.window.blit(msg, (10, FIELD_HEIGHT + 5))
         elif self.show_score:
-            msg = font.render("you lose.", True, WHITE)
+            msg = font.render("You Lose. " + score_msg, True, (255,255,255))
             self.window.blit(msg, (10, FIELD_HEIGHT + 5))
 
-        elif self.show_ready:
-            msg = font.render("Ready...", True, WHITE)
-            self.window.blit(msg, (10, FIELD_HEIGHT + 5))
-
-        self.field.draw()
-        self.status_bar.draw(self.level, self.player.xonii, self.player.score, self.percent_complete, self.time_remaining)
-        self.player.draw()
-        for dot in self.white_dots:
-            dot.draw()
-        for dot in self.black_dots:
-            dot.draw()
-        for line in self.orange_lines:
-            line.draw()
+        else:
+            self.field.draw()
+            if self.show_ready:
+                msg = font.render("Ready...", True, (255,255,255))
+                self.window.blit(msg, (10, FIELD_HEIGHT + 5))
+            else:
+                self.status_bar.draw(self.level, self.player.xonii, self.player.score, self.percent_complete,
+                                     self.time_remaining)
+            self.player.draw()
+            for dot in self.white_dots:
+                dot.draw()
+            for dot in self.black_dots:
+                dot.draw()
+            for line in self.orange_lines:
+                line.draw()
         pygame.display.update()
-
-
 
     def on_cleanup(self):
         pygame.quit()
@@ -162,18 +168,18 @@ class StatusBar:
     def __init__(self, window):
         self.window = window
 
-        self.status_msg = "Level: {level}    Xonii: {xonii}    Filled: {fill_p}%    Score: {score}    "
+        self.status_msg = "Level: {level}   Xonii: {xonii}   Filled: {fill_p}%   Score: {score}   "
         self.time_msg = "Time: {min}:{sec}"
-        self.time_msg_low = "Time:{min}:{sec}   <<< Low Time!"
+        self.time_msg_low = "Time:{min}:{sec} <<< Low Time!"
 
     def draw(self, level, xonii, score, filled, time):
         mins = time//60
         secs = time - mins * 60
         msg = font.render(self.status_msg.format(level=level, xonii=xonii, fill_p=round(filled), score=score), True, (255,255,255))
-        if mins < 0 and secs < 30:
+        if mins == 0 and secs < 30:
             msg_time = font_b.render(self.time_msg_low.format(min=mins, sec=secs), True, (255,255,255))
         else:
-            msg_time = font.render(self.time_msg_low.format(min=mins, sec=secs), True, (255,255,255))
+            msg_time = font.render(self.time_msg.format(min=mins, sec=secs), True, (255,255,255))
         self.window.blit(msg, (10, FIELD_HEIGHT + 5))
         self.window.blit(msg_time, (10 + msg.get_width(), FIELD_HEIGHT + 5))
 

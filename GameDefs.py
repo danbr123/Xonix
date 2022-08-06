@@ -17,6 +17,8 @@ WIDTH, HEIGHT = FIELD_WIDTH, FIELD_HEIGHT + 25 # 25 is for status bar
 CHECKED = 1
 BORDER = 20
 
+MAX_LEVEL = 15
+
 
 def get_time_limit(level, died_on_this_level=False):
     limit = 60 * min(5, level)
