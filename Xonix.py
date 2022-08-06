@@ -8,7 +8,7 @@ from skimage.morphology import flood_fill
 
 
 pygame.init()
-pygame.display.set_caption("Xonix ripoff by Dan")
+pygame.display.set_caption("Xonix32 ripoff by Dan")
 pygame.font.init()
 
 # fonts
@@ -196,6 +196,8 @@ class StatusBar:
 
 class Player:
 
+    player_image = None
+
     COLLISION = 4
     OFFSET = 3
     SPEED = 4
@@ -203,20 +205,22 @@ class Player:
 
     def __init__(self, window):
         self.window = window
-        self.image = None # TODO
+        if not Player.player_image:
+            Player.player_image = pygame.image.load(os.path.join('Assets', "player.bmp")).convert_alpha()
+        self.image = Player.player_image
         self.score = 0
         self.xonii = 2
         self.died_on_this_level = False
         self.x = FIELD_WIDTH // 2
         self.y = 3
+        self.rect = self.image.get_rect(center=(self.x, self.y))
         self.speed_x = self.speed_y = 0
-
-        self.min_x = self.min_y = self.max_x = self.max_y = None
 
     def reset_position(self):
         self.x = FIELD_WIDTH // 2
         self.y = 3
         self.speed_x = self.speed_y = 0
+        self.rect.center = (self.x, self.y)
 
     def update(self, field_bmp):
         self.direction()
@@ -234,7 +238,7 @@ class Player:
 
         self.x += self.speed_x
         self.y += self.speed_y
-        self.update_trajectory_extremes(field_bmp)
+        self.rect.center = (self.x, self.y)
 
 
         if np.array_equal(field_bmp[self.y][self.x], BLACK):
@@ -243,28 +247,12 @@ class Player:
                     if np.array_equal(field_bmp[i][j], BLACK):
                         field_bmp[i][j] = RED
 
-        if np.array_equal(field_bmp[self.y][self.x], AQUA) and np.array_equal(
+        if np.array_equal(field_bmp[self.y][self.x], BLUE) and np.array_equal(
                 field_bmp[self.y - self.speed_y][self.x - self.speed_x], RED):
             self.speed_x = 0
             self.speed_y = 0
             return True
         return
-
-    def update_trajectory_extremes(self, field_bmp):
-        if np.array_equal(field_bmp[self.y][self.x], AQUA):
-            self.reset_trajectory_extremes()
-            return
-        if not self.min_x or self.x < self.min_x:
-            self.min_x = self.x
-        if not self.min_y or self.y < self.min_y:
-            self.min_y = self.y
-        if not self.max_x or self.x > self.max_x:
-            self.max_x = self.x
-        if not self.max_y or self.y > self.max_y:
-            self.max_y = self.y
-
-    def reset_trajectory_extremes(self):
-        self.min_x = self.min_y = self.max_x = self.max_y = None
 
     def direction(self):
         keys_pressed = pygame.key.get_pressed()
@@ -299,8 +287,8 @@ class Player:
         return False
 
     def draw(self):
-        pygame.draw.rect(self.window, (255,255,255), pygame.Rect(self.x - 3, self.y - 3, 5,5))
-
+        # pygame.draw.rect(self.window, (255,255,255), pygame.Rect(self.x - 3, self.y - 3, 5,5))
+        self.window.blit(self.image, self.rect)
 
 class Field:
 
@@ -313,7 +301,7 @@ class Field:
         for i in range(FIELD_HEIGHT):
             for j in range(FIELD_WIDTH):
                 if i < BORDER - 1 or j < BORDER - 1 or i >= FIELD_HEIGHT - BORDER or j >= FIELD_WIDTH - BORDER:
-                    self.field_bmp[i][j] = AQUA
+                    self.field_bmp[i][j] = BLUE
                     # self.blue_count += 1
                 else:
                     self.field_bmp[i][j] = BLACK
@@ -322,6 +310,10 @@ class Field:
     def draw(self):
         # pygame.draw.rect(self.window, AQUA, self.base_rect)
         surf = pygame.surfarray.make_surface(np.swapaxes(self.field_bmp, 0, 1))
+        pix_array = pygame.PixelArray(surf)
+        pix_array.replace(BLUE, AQUA)
+        pix_array.replace(RED, PURPLE)
+        del pix_array
         self.window.blit(surf, (0, 0))
 
     def flood_fill(self, white_dots, orange_lines):
@@ -333,7 +325,7 @@ class Field:
 
         # replace reds with blue
         # self.blue_count += np.count_nonzero(self.field_bmp == RED)
-        self.field_bmp[self.field_bmp == RED] = AQUA
+        self.field_bmp[self.field_bmp == RED] = BLUE
         start_points = [dot for dot in white_dots]
         for line in orange_lines:
             start_points.append(line.end_one)
@@ -376,7 +368,7 @@ class Field:
 
         # replace black->blue and checked->black
         # self.blue_count += np.count_nonzero(self.field_bmp == BLACK)
-        self.field_bmp[self.field_bmp == BLACK] = AQUA
+        self.field_bmp[self.field_bmp == BLACK] = BLUE
         self.field_bmp[self.field_bmp == CHECKED] = BLACK
 
     def check_interference(self, white_dots):
@@ -389,7 +381,7 @@ class Field:
         self.field_bmp[self.field_bmp == RED] = BLACK
 
     def update_blue_count(self):
-        self.blue_count = np.count_nonzero(self.field_bmp == AQUA)
+        self.blue_count = np.count_nonzero(self.field_bmp == BLUE)
 
 class Dot:
 
@@ -416,9 +408,10 @@ class Dot:
             self.speed_x = - self.speed_x
         if random.getrandbits(1):
             self.speed_y = - self.speed_y
-        self.bounce_pix = AQUA
+        self.bounce_pix = BLUE
         self.bounce_pix_2 = None
         self.image = None
+        self.rect = None
 
     def bounce(self, field_bmp):
         if self.y_border() or np.array_equal(self.next_pix_y(field_bmp), self.bounce_pix) or np.array_equal(
@@ -432,9 +425,12 @@ class Dot:
         self.bounce(field_bmp)
         self.x += self.speed_x
         self.y += self.speed_y
+        if self.rect:
+            self.rect.center = (self.x, self.y)
 
     def draw(self):
-        pygame.draw.rect(self.window, (255,255,255), pygame.Rect(self.x, self.y, 3,3))
+        # pygame.draw.rect(self.window, (0, 0, 0), pygame.Rect(self.x, self.y, 3,3))
+        self.window.blit(self.image, self.rect)
 
     def y_border(self):
         if self.speed_y > 0:
@@ -471,33 +467,42 @@ class Dot:
 
 class WhiteDot(Dot):
 
+    white_dot_img = None
+
     SPEED_MIN = 1
     SPEED_MAX = 3
 
     def __init__(self, window):
         super().__init__(window)
-        self.bounce_pix = AQUA
-        self.image = None
+        self.bounce_pix = BLUE
+        if not WhiteDot.white_dot_img:
+            WhiteDot.white_dot_img = pygame.image.load(os.path.join('Assets', "wdot.bmp")).convert_alpha()
+        self.image = WhiteDot.white_dot_img
+        self.rect = self.image.get_rect(center=(self.x, self.y))
 
 
 class BlackDot(Dot):
 
+    black_dot_img = None
+
     SPEED_MIN = SPEED_MAX = 2
 
-    def __init__(self, window, x=None, y=None):
+    def __init__(self, window):
         self.y = random.randint(0, 3) + (FIELD_HEIGHT - BORDER + 10)
         self.x = BORDER + random.randint(0, FIELD_WIDTH - BORDER - 1)
         super().__init__(window, self.x, self.y)
         self.bounce_pix = BLACK
         self.bounce_pix_2 = RED
-        self.image = None
+        if not BlackDot.black_dot_img:
+            BlackDot.black_dot_img = pygame.image.load(os.path.join('Assets', "bdot.png")).convert_alpha()
+        self.image = BlackDot.black_dot_img
+        self.rect = self.image.get_rect(center=(self.x, self.y))
 
     def reset_position(self):
         self.y = random.randint(0, 3) + (FIELD_HEIGHT - BORDER + 10)
         self.x = BORDER + random.randint(0, FIELD_WIDTH - BORDER - 1)
+        self.rect.center = (self.x, self.y)
 
-    def draw(self):
-        pygame.draw.rect(self.window, (0, 0, 0), pygame.Rect(self.x, self.y, 3,3))
 
 
 class LineDot(Dot):
@@ -507,7 +512,7 @@ class LineDot(Dot):
 
     def __init__(self, window):
         super().__init__(window)
-        self.bounce_pix = AQUA
+        self.bounce_pix = BLUE
         self.image = None
 
     def draw(self):

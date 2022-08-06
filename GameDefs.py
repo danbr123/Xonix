@@ -7,8 +7,13 @@ import numpy as np
 BLACK = 0
 RED = 64
 WHITE = 255
-AQUA = 130
+BLUE = 130
+
+# These colors replace some of the original colors, as 8 bits rgb does not support them
+PURPLE = (168, 9, 171)
+AQUA = (0, 169, 168)
 ORANGE = (132, 132, 0)
+
 FPS = 30
 FIELD_WIDTH, FIELD_HEIGHT = 510, 322
 TOTAL_SQUARES = FIELD_WIDTH * FIELD_HEIGHT
