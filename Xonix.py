@@ -52,6 +52,10 @@ class Game:
         self.congrats = False
         self.show_score = False
 
+        self.is_paused = False
+        self.pause_time = 0
+        self.pause_start = 0
+
         # run game
         self.on_execute()
 
@@ -69,15 +73,25 @@ class Game:
         # this function runs in each iteration of the main loop where a pygame event happened
         if event.type == pygame.QUIT:  # click the exit button
             self._running = False
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_F3:
+                if self.is_paused:
+                    self.is_paused = False
+                    self.pause_time += time.time() - self.pause_start
+                else:
+                    self.is_paused = True
+                    self.pause_start = time.time()
+
+
 
     def on_loop(self):
-        if not self.show_score:
+        if not self.show_score and not self.is_paused:
             if self.show_ready:
                 self.show_ready = False
                 time.sleep(2)
                 self.start_time = time.time()
             else:
-                self.time_remaining = int(self.time_limit - (time.time() - self.start_time))
+                self.time_remaining = int(self.time_limit - (time.time() - self.start_time) + self.pause_time)
             self.field.update_blue_count()
             self.percent_complete = 100 * (self.field.blue_count / TOTAL_SQUARES)
             if self.player.update(self.field.field_bmp):
@@ -134,6 +148,10 @@ class Game:
                 msg = font_b2.render("Ready...", True, (204, 204, 0))
                 msg_rect = msg.get_rect(center=(FIELD_WIDTH // 2, FIELD_HEIGHT // 2))
                 self.window.blit(msg, msg_rect)
+            elif self.is_paused:
+                msg = font_b2.render("Paused", True, (204, 204, 0))
+                msg_rect = msg.get_rect(center=(FIELD_WIDTH // 2, FIELD_HEIGHT // 2))
+                self.window.blit(msg, msg_rect)
             self.status_bar.draw(self.level, self.player.xonii, self.player.score, self.percent_complete,
                                  self.time_remaining)
             self.player.draw()
@@ -153,6 +171,7 @@ class Game:
         self.player.xonii += 1
         self.player.reset_position()
         self.time_limit = get_time_limit(self.level, self.player.died_on_this_level)
+        self.pause_time = 0
         self.time_remaining = self.time_limit
         self.percent_complete = 18
         self.field = Field(self.window)
