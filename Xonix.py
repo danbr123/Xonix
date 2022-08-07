@@ -109,7 +109,7 @@ class Game:
                 line.update(self.field.field_bmp)
 
             # check for collisions
-            if self.player.interference(self.white_dots, self.black_dots) or\
+            if self.player.interference(self.white_dots, self.black_dots, self.field.field_bmp) or\
                     self.field.check_interference(self.white_dots) or self.time_remaining <= 0:
                 time.sleep(2)
                 for dot in self.black_dots:

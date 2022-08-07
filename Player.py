@@ -86,9 +86,13 @@ class Player:
         self.score += 500
         self.score += get_bonus_points(time_remaining, time_limit, self.died_on_this_level)
 
-    def interference(self, white_dots, black_dots):
+    def interference(self, white_dots, black_dots, field_bmp):
         # check if a black/white dot hit the player
-        for dot in white_dots + black_dots:
+        for dot in white_dots:
+            if field_bmp[self.y][self.x] != BLUE:  # only check for collisions if the player is not in the "safe" area
+                if self.rect.colliderect(dot.rect):
+                    return True
+        for dot in black_dots:
             if self.rect.colliderect(dot.rect):
                 return True
 
