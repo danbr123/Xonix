@@ -1,19 +1,21 @@
 import random
 import os
 import pygame
+import numpy as np
 from GameDefs import *
 
 
 class Dot:
 
     OFFSET = 3
-    Z_ORDER = 4
     GAP = 50
     SPEED_MIN = 1
     SPEED_MAX = 4
 
     def __init__(self, window, x=None, y=None):
         self.window = window
+
+        # set position and speed randomly
         if x:
             self.x = x
         else:
@@ -25,12 +27,17 @@ class Dot:
 
         self.speed_x = random.randint(self.SPEED_MIN, self.SPEED_MAX)
         self.speed_y = random.randint(self.SPEED_MIN, self.SPEED_MAX)
+
+        # set direction randomly
         if random.getrandbits(1):
             self.speed_x = - self.speed_x
         if random.getrandbits(1):
             self.speed_y = - self.speed_y
+
+        # pixel colors from which the dot will bounce.
         self.bounce_pix = BLUE
         self.bounce_pix_2 = None
+
         self.image = None
         self.rect = None
 
@@ -50,7 +57,6 @@ class Dot:
             self.rect.center = (self.x, self.y)
 
     def draw(self):
-        # pygame.draw.rect(self.window, (0, 0, 0), pygame.Rect(self.x, self.y, 3,3))
         self.window.blit(self.image, self.rect)
 
     def y_border(self):
@@ -72,7 +78,7 @@ class Dot:
             else:
                 pix = field_bmp[self.y][self.x + self.speed_x - self.OFFSET]
             return pix
-        except:
+        except IndexError:  # fixed some bug, shouldn't really happen anymore
             return self.bounce_pix
 
     def next_pix_y(self, field_bmp):
@@ -82,7 +88,7 @@ class Dot:
             else:
                 pix = field_bmp[self.y + self.speed_y - self.OFFSET][self.x]
             return pix
-        except:
+        except IndexError:
             return self.bounce_pix
 
 
@@ -125,7 +131,6 @@ class BlackDot(Dot):
         self.rect.center = (self.x, self.y)
 
 
-
 class LineDot(Dot):
 
     SPEED_MIN = 1
@@ -142,8 +147,6 @@ class LineDot(Dot):
 
 class OrangeLine:
 
-    Z_ORDER = 3
-
     def __init__(self, window):
         self.window = window
         self.end_one = LineDot(window)
@@ -158,6 +161,7 @@ class OrangeLine:
         pygame.draw.line(self.window, ORANGE, (self.end_one.x, self.end_one.y), (self.end_two.x, self.end_two.y))
 
     def cover_field(self, field_bmp):
+        # fill the area between the edges of a line with black pixels
         x1, y1 = self.end_one.x, self.end_one.y
         x2, y2 = self.end_two.x, self.end_two.y
 
@@ -185,7 +189,6 @@ class OrangeLine:
                 field_bmp[pixel[1] - i, pixel[0]] = BLACK
                 field_bmp[pixel[1], pixel[0] + i] = BLACK
                 field_bmp[pixel[1], pixel[0] - i] = BLACK
-
 
             error -= delta_y
             if error < 0:

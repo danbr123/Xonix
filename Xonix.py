@@ -1,5 +1,4 @@
 import pygame
-import os
 import time
 
 from GameDefs import *
@@ -29,6 +28,7 @@ class Game:
         self.clock = pygame.time.Clock()
         self.window = pygame.display.set_mode(self.size)
 
+        # initialize object
         self.player = Player(self.window)
         self.status_bar = StatusBar(self.window)
         self.level = 0
@@ -56,9 +56,8 @@ class Game:
         # run game
         self.on_execute()
 
-
     def on_execute(self):
-        while (self._running):
+        while self._running:
             self.clock.tick(FPS)  # sync time to match FPS
             for event in pygame.event.get():  # handle events if they exist
                 self.on_event(event)
@@ -79,20 +78,20 @@ class Game:
                     self.is_paused = True
                     self.pause_start = time.time()
 
-
-
     def on_loop(self):
         if not self.show_score and not self.is_paused:
-            if self.show_ready:
+            if self.show_ready:  # show ready message at the start or after losing a life
                 self.show_ready = False
                 time.sleep(2)
                 self.start_time = time.time()
             else:
                 self.time_remaining = int(self.time_limit - (time.time() - self.start_time) + self.pause_time)
+            # update percent complete (to account for lines removing pixels)
             self.field.update_blue_count()
             self.percent_complete = 100 * (self.field.blue_count / TOTAL_SQUARES)
-            if self.player.update(self.field.field_bmp):
+            if self.player.update(self.field.field_bmp):  # True if the player returned to an AQUA pixel
                 self.field.flood_fill(self.white_dots, self.orange_lines)
+                # update percent complete after player removed pixels, and check for winning condition
                 self.field.update_blue_count()
                 self.percent_complete = 100 * (self.field.blue_count / TOTAL_SQUARES)
                 if self.percent_complete > MIN_PERCENT_FOR_WIN:
@@ -101,6 +100,7 @@ class Game:
                         self.congrats = True
                     else:
                         self.init_next_level()
+            # update enemy positions
             for dot in self.white_dots:
                 dot.update(self.field.field_bmp)
             for dot in self.black_dots:
@@ -108,7 +108,9 @@ class Game:
             for line in self.orange_lines:
                 line.update(self.field.field_bmp)
 
-            if self.player.interference(self.white_dots, self.black_dots) or self.field.check_interference(self.white_dots) or self.time_remaining <= 0:
+            # check for collisions
+            if self.player.interference(self.white_dots, self.black_dots) or\
+                    self.field.check_interference(self.white_dots) or self.time_remaining <= 0:
                 time.sleep(2)
                 for dot in self.black_dots:
                     dot.reset_position()
@@ -160,7 +162,8 @@ class Game:
                 line.draw()
         pygame.display.update()
 
-    def on_cleanup(self):
+    @staticmethod  # static for now so that pycharm won't yell at me
+    def on_cleanup():
         pygame.quit()
 
     def init_next_level(self):
@@ -178,14 +181,6 @@ class Game:
         self.orange_lines = [OrangeLine(self.window) for _ in range(counts["orange_lines"])]
         self.show_ready = True
 
-class GameDefs:
-
-    def __init__(self):
-        self.white_dots = None
-        self.black_dots = None
-        self.orange_lines = None
-        self.limit = 0
-
 
 class StatusBar:
 
@@ -198,16 +193,18 @@ class StatusBar:
         self.time_msg = "Time: {min}:{sec}"
         self.time_msg_low = "Time:{min}:{sec} <<< Low Time!"
 
-    def draw(self, level, xonii, score, filled, time):
-        mins = time//60
-        secs = time - mins * 60
-        msg = font.render(self.status_msg.format(level=level, xonii=xonii, fill_p=round(filled), score=score), True, (255,255,255))
+    def draw(self, level, xonii, score, filled, time_left):
+        mins = time_left//60
+        secs = time_left - mins * 60
+        msg = font.render(self.status_msg.format(level=level, xonii=xonii, fill_p=round(filled), score=score),
+                          True, (255, 255, 255))
         if mins == 0 and secs < 30:
-            msg_time = font_b.render(self.time_msg_low.format(min=mins, sec=secs), True, (255,255,255))
+            msg_time = font_b.render(self.time_msg_low.format(min=mins, sec=secs), True, (255, 255, 255))
         else:
-            msg_time = font.render(self.time_msg.format(min=mins, sec=secs), True, (255,255,255))
+            msg_time = font.render(self.time_msg.format(min=mins, sec=secs), True, (255, 255, 255))
         self.window.blit(msg, (10, FIELD_HEIGHT + 5))
         self.window.blit(msg_time, (10 + msg.get_width(), FIELD_HEIGHT + 5))
 
 
-Game()
+if __name__ == "__main__":
+    Game()

@@ -1,5 +1,3 @@
-import numpy as np
-
 # BLACK = np.array((0, 0, 0))
 # RED = np.array((255, 102, 102))
 # WHITE = np.array((255, 255, 255))
@@ -17,7 +15,7 @@ ORANGE = (132, 132, 0)
 FPS = 30
 FIELD_WIDTH, FIELD_HEIGHT = 510, 322
 TOTAL_SQUARES = FIELD_WIDTH * FIELD_HEIGHT
-WIDTH, HEIGHT = FIELD_WIDTH, FIELD_HEIGHT + 25 # 25 is for status bar
+WIDTH, HEIGHT = FIELD_WIDTH, FIELD_HEIGHT + 25  # 25 is for status bar
 
 CHECKED = 1
 BORDER = 20

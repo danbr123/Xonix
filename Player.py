@@ -1,5 +1,6 @@
 import pygame
 import os
+import numpy as np
 from GameDefs import *
 
 
@@ -7,10 +8,8 @@ class Player:
 
     player_image = None
 
-    # COLLISION = 4
     OFFSET = 3
     SPEED = 4
-    SIZE = 10
 
     def __init__(self, window):
         self.window = window
@@ -18,7 +17,7 @@ class Player:
             Player.player_image = pygame.image.load(os.path.join('Assets', "player.bmp")).convert_alpha()
         self.image = Player.player_image
         self.score = 0
-        self.xonii = 2
+        self.xonii = 2  # lives
         self.died_on_this_level = False
         self.x = FIELD_WIDTH // 2
         self.y = 3
@@ -49,13 +48,14 @@ class Player:
         self.y += self.speed_y
         self.rect.center = (self.x, self.y)
 
-
+        # color trajectory in the black area
         if np.array_equal(field_bmp[self.y][self.x], BLACK):
             for j in range(self.x - self.OFFSET, self.x + self.OFFSET):
                 for i in range(self.y - self.OFFSET, self.y + self.OFFSET):
                     if np.array_equal(field_bmp[i][j], BLACK):
                         field_bmp[i][j] = RED
 
+        # if the player moved from black to blue, return True and reset speed
         if np.array_equal(field_bmp[self.y][self.x], BLUE) and np.array_equal(
                 field_bmp[self.y - self.speed_y][self.x - self.speed_x], RED):
             self.speed_x = 0
@@ -64,6 +64,7 @@ class Player:
         return
 
     def direction(self):
+        # get moving direction
         keys_pressed = pygame.key.get_pressed()
         if keys_pressed[pygame.K_a] or keys_pressed[pygame.K_LEFT]:  # LEFT
             self.speed_x = -self.SPEED
@@ -81,19 +82,15 @@ class Player:
             self.speed_x = 0
             self.speed_y = 0
 
-
     def update_score(self, time_remaining, time_limit):
         self.score += 500
         self.score += get_bonus_points(time_remaining, time_limit, self.died_on_this_level)
 
     def interference(self, white_dots, black_dots):
+        # check if a black/white dot hit the player
         for dot in white_dots + black_dots:
             if self.rect.colliderect(dot.rect):
                 return True
-            # if abs(dot.x - self.x) + abs(dot.y - self.y) <= self.COLLISION:
-            #     return True
 
     def draw(self):
-        # pygame.draw.rect(self.window, (255,255,255), pygame.Rect(self.x - 3, self.y - 3, 5,5))
         self.window.blit(self.image, self.rect)
-
